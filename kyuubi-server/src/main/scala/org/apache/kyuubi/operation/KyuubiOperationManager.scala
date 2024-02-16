@@ -38,6 +38,7 @@ class KyuubiOperationManager private (name: String) extends OperationManager(nam
   private var queryTimeout: Option[Long] = None
 
   override def initialize(conf: KyuubiConf): Unit = {
+    // 查询超时
     queryTimeout = conf.get(OPERATION_QUERY_TIMEOUT).map(TimeUnit.MILLISECONDS.toSeconds)
     super.initialize(conf)
   }

@@ -76,8 +76,10 @@ final class KyuubiTBinaryFrontendService(
   override def OpenSession(req: TOpenSessionReq): TOpenSessionResp = {
     debug(req.toString)
     info("Client protocol version: " + req.getClient_protocol)
+    // 构建返回响应请求
     val resp = new TOpenSessionResp
     try {
+      // 构建SessionHandle
       val sessionHandle = getSessionHandle(req, resp)
 
       val respConfiguration = new java.util.HashMap[String, String]()

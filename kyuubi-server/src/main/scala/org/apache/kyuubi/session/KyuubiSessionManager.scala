@@ -46,11 +46,13 @@ import org.apache.kyuubi.util.ThreadUtils.scheduleTolerableRunnableWithFixedDela
 class KyuubiSessionManager private (name: String) extends SessionManager(name) {
 
   def this() = this(classOf[KyuubiSessionManager].getSimpleName)
-
+  // Kyuubi解析器
   private val parser = new KyuubiParser()
-
+  // KyuubiOperationManger()
   val operationManager = new KyuubiOperationManager()
+  // HadoopCredentialsManager()
   val credentialsManager = new HadoopCredentialsManager()
+  // applicationManager()
   val applicationManager = new KyuubiApplicationManager()
 
   // Currently, the metadata manager is used by the REST frontend which provides batch job APIs,
@@ -73,11 +75,17 @@ class KyuubiSessionManager private (name: String) extends SessionManager(name) {
 
   override def initialize(conf: KyuubiConf): Unit = {
     this.conf = conf
+    // 添加了applicationManager
     addService(applicationManager)
+    // 添加了credentialsManager
     addService(credentialsManager)
+    // 添加了metadataManager
     metadataManager.foreach(addService)
+    // 初始化Session限制
     initSessionLimiter(conf)
+    // 初始化引擎启动处理信号量
     initEngineStartupProcessSemaphore(conf)
+
     super.initialize(conf)
   }
 
@@ -332,21 +340,29 @@ class KyuubiSessionManager private (name: String) extends SessionManager(name) {
   override protected def isServer: Boolean = true
 
   private def initSessionLimiter(conf: KyuubiConf): Unit = {
+    // 每个用户的最大连接数
     val userLimit = conf.get(SERVER_LIMIT_CONNECTIONS_PER_USER).getOrElse(0)
+    // 每个ip地址最大Kyuubi服务连接数
     val ipAddressLimit = conf.get(SERVER_LIMIT_CONNECTIONS_PER_IPADDRESS).getOrElse(0)
+    // 每个用户最大Kyuubi服务连接数
     val userIpAddressLimit = conf.get(SERVER_LIMIT_CONNECTIONS_PER_USER_IPADDRESS).getOrElse(0)
+    // 白名单用户的最大连接数不受限制
     val userUnlimitedList =
       conf.get(SERVER_LIMIT_CONNECTIONS_USER_UNLIMITED_LIST).filter(_.nonEmpty)
+    // 拒绝用户列表
     val userDenyList = conf.get(SERVER_LIMIT_CONNECTIONS_USER_DENY_LIST).filter(_.nonEmpty)
+    // 限制者
     limiter = applySessionLimiter(
       userLimit,
       ipAddressLimit,
       userIpAddressLimit,
       userUnlimitedList,
       userDenyList)
-
+    // 每个用户的最大Kyuubi服务器批量连接数
     val userBatchLimit = conf.get(SERVER_LIMIT_BATCH_CONNECTIONS_PER_USER).getOrElse(0)
+    // 每个ip地址的最大Kyuubi服务器批量连接数
     val ipAddressBatchLimit = conf.get(SERVER_LIMIT_BATCH_CONNECTIONS_PER_IPADDRESS).getOrElse(0)
+    // 每个用户的最大Kyuubi服务器批量连接数
     val userIpAddressBatchLimit =
       conf.get(SERVER_LIMIT_BATCH_CONNECTIONS_PER_USER_IPADDRESS).getOrElse(0)
     batchLimiter = applySessionLimiter(
@@ -422,6 +438,7 @@ class KyuubiSessionManager private (name: String) extends SessionManager(name) {
   }
 
   private def initEngineStartupProcessSemaphore(conf: KyuubiConf): Unit = {
+    // kyuubi服务器的最大引擎启动并发
     val engineCreationLimit = conf.get(KyuubiConf.SERVER_LIMIT_ENGINE_CREATION)
     engineCreationLimit.filter(_ > 0).foreach { limit =>
       engineStartupProcessSemaphore = Some(new Semaphore(limit))

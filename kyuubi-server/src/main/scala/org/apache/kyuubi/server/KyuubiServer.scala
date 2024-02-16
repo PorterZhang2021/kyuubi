@@ -42,7 +42,9 @@ object KyuubiServer extends Logging {
   @volatile private[kyuubi] var hadoopConf: Configuration = _
 
   def startServer(conf: KyuubiConf): KyuubiServer = {
+    // 获取hadoop的配置
     hadoopConf = KyuubiHadoopUtils.newHadoopConf(conf)
+    // 是否开启高可用的配置
     var embeddedZkServer: Option[EmbeddedZookeeper] = None
     if (!ServiceDiscovery.supportServiceDiscovery(conf)) {
       embeddedZkServer = Some(new EmbeddedZookeeper())
@@ -53,12 +55,14 @@ object KyuubiServer extends Logging {
         conf.set(HA_ZK_AUTH_TYPE, AuthTypes.NONE.toString)
       })
     }
-
+    // 创建一个KyuubiServer服务对象, 默认走的是new KyuubiServer(), 因为配置文件中没有给服务名
     val server = conf.get(KyuubiConf.SERVER_NAME) match {
       case Some(s) => new KyuubiServer(s)
+      // 创建一个KyuubiServer对象
       case _ => new KyuubiServer()
     }
     try {
+      // KyuubiServer对象初始化
       server.initialize(conf)
     } catch {
       case e: Exception =>
@@ -95,8 +99,11 @@ object KyuubiServer extends Logging {
 
     // register conf entries
     JDBCMetadataStoreConf
+    // 这里是加载Kyuubi文件当中的配置
     val conf = new KyuubiConf().loadFileDefaults()
+    // 这里加载的是Hadoop相关的配置
     UserGroupInformation.setConfiguration(KyuubiHadoopUtils.newHadoopConf(conf))
+    // 将配置加载到服务当中
     startServer(conf)
   }
 
@@ -165,11 +172,12 @@ object KyuubiServer extends Logging {
 
 class KyuubiServer(name: String) extends Serverable(name) {
 
+  // 构造体
   def this() = this(classOf[KyuubiServer].getSimpleName)
-
+  // BE服务
   override val backendService: AbstractBackendService =
     new KyuubiBackendService() with BackendServiceMetric
-
+  // 懒加载 FE服务 默认走RestFrontendService
   override lazy val frontendServices: Seq[AbstractFrontendService] =
     conf.get(FRONTEND_PROTOCOLS).map(FrontendProtocols.withName).map {
       case THRIFT_BINARY => new KyuubiTBinaryFrontendService(this)
@@ -188,16 +196,17 @@ class KyuubiServer(name: String) extends Serverable(name) {
     }
 
   override def initialize(conf: KyuubiConf): Unit = synchronized {
+    // 鉴权服务
     val kinit = new KinitAuxiliaryService()
     addService(kinit)
-
+    // GC服务
     val periodicGCService = new PeriodicGCService
     addService(periodicGCService)
-
+    // 指标服务
     if (conf.get(MetricsConf.METRICS_ENABLED)) {
       addService(new MetricsSystem)
     }
-
+    // 批处理服务
     if (conf.isRESTEnabled && conf.get(BATCH_SUBMITTER_ENABLED)) {
       addService(new KyuubiBatchService(
         this,

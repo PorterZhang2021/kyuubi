@@ -164,6 +164,7 @@ abstract class TFrontendService(name: String)
 
   @throws[KyuubiSQLException]
   protected def getSessionHandle(req: TOpenSessionReq, res: TOpenSessionResp): SessionHandle = {
+
     val protocol = getMinVersion(SERVER_VERSION, req.getClient_protocol)
     res.setServerProtocolVersion(protocol)
     val (realUser, sessionUser) = getRealUserAndSessionUser(req)

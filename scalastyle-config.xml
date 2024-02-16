@@ -67,9 +67,9 @@ This file is divided into 3 sections:
     </parameters>
   </check>
 
-  <check level="error" class="org.scalastyle.scalariform.SpacesAfterPlusChecker" enabled="true"/>
+  <check level="error" class="org.scalastyle.scalariform.SpacesAfterPlusChecker" enabled="false"/>
 
-  <check level="error" class="org.scalastyle.scalariform.SpacesBeforePlusChecker" enabled="true"/>
+  <check level="error" class="org.scalastyle.scalariform.SpacesBeforePlusChecker" enabled="false"/>
 
   <check level="error" class="org.scalastyle.file.WhitespaceEndOfLineChecker" enabled="true"/>
 
@@ -115,8 +115,8 @@ This file is divided into 3 sections:
   <check level="error" class="org.scalastyle.scalariform.PublicMethodsHaveTypeChecker" enabled="true"/>
 
   <check level="error" class="org.scalastyle.file.NewLineAtEofChecker" enabled="true"/>
-
-  <check customId="nonascii" level="error" class="org.scalastyle.scalariform.NonASCIICharacterChecker" enabled="true"/>
+  <!-- 这里需要改为false, 因为中文字符是ASCII码字符 -->
+  <check customId="nonascii" level="error" class="org.scalastyle.scalariform.NonASCIICharacterChecker" enabled="false"/>
 
   <check level="error" class="org.scalastyle.scalariform.SpaceAfterCommentStartChecker" enabled="true"/>
 

@@ -243,34 +243,38 @@ abstract class SessionManager(name: String) extends CompositeService(name) {
 
   override def initialize(conf: KyuubiConf): Unit = synchronized {
     this.conf = conf
+    // 加载operationManager
     addService(operationManager)
     initOperationLogRootDir()
-
+    // Kyuubi服务器的操作执行线程池中的线程数
     val poolSize: Int =
       if (isServer) {
         conf.get(SERVER_EXEC_POOL_SIZE)
       } else {
         conf.get(ENGINE_EXEC_POOL_SIZE)
       }
-
+    // Kyuubi服务器的操作执行线程池的等待队列大小
     val waitQueueSize: Int =
       if (isServer) {
         conf.get(SERVER_EXEC_WAIT_QUEUE_SIZE)
       } else {
         conf.get(ENGINE_EXEC_WAIT_QUEUE_SIZE)
       }
+    // 操作执行线程池的空闲异步线程在Kyoubi服务器中终止之前等待新任务到达的时间（毫秒）
     val keepAliveMs: Long =
       if (isServer) {
         conf.get(SERVER_EXEC_KEEPALIVE_TIME)
       } else {
         conf.get(ENGINE_EXEC_KEEPALIVE_TIME)
       }
-
+    // 配置限制列表
     _confRestrictList = conf.get(SESSION_CONF_RESTRICT_LIST)
+    // 配置忽略列表
     _confIgnoreList = conf.get(SESSION_CONF_IGNORE_LIST) +
       s"${SESSION_USER_SIGN_ENABLED.key}"
+    // 批处理配置忽略列表
     _batchConfIgnoreList = conf.get(BATCH_CONF_IGNORE_LIST)
-
+    // 执行线程池
     execPool = ThreadUtils.newDaemonQueuedThreadPool(
       poolSize,
       waitQueueSize,

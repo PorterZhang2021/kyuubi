@@ -43,7 +43,9 @@ abstract class Serverable(name: String) extends CompositeService(name) {
 
   override def initialize(conf: KyuubiConf): Unit = synchronized {
     this.conf = conf
+    // 添加BE服务
     addService(backendService)
+    // 添加FE服务
     frontendServices.foreach(addService)
     super.initialize(conf)
   }

@@ -45,6 +45,7 @@ abstract class OperationManager(name: String) extends AbstractService(name) {
   def allOperations(): Iterable[Operation] = handleToOperation.values().asScala
 
   override def initialize(conf: KyuubiConf): Unit = {
+    // 是否跳过操作日志
     LogDivertAppender.initialize(skipOperationLog)
     super.initialize(conf)
   }
