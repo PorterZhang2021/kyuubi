@@ -68,7 +68,7 @@ abstract class SessionManager(name: String) extends CompositeService(name) {
 
   @volatile private var _latestLogoutTime: Long = System.currentTimeMillis()
   def latestLogoutTime: Long = _latestLogoutTime
-
+  // 哈希表, Key为SessionHandle, Value为Session
   private val handleToSession = new ConcurrentHashMap[SessionHandle, Session]
 
   private val timeoutChecker =
@@ -148,10 +148,12 @@ abstract class SessionManager(name: String) extends CompositeService(name) {
   }
 
   def getSessionOption(sessionHandle: SessionHandle): Option[Session] = {
+    // 通过SessionHandle获取Session
     Option(handleToSession.get(sessionHandle))
   }
 
   def getSession(sessionHandle: SessionHandle): Session = {
+    // 获取Session
     getSessionOption(sessionHandle).getOrElse(throw KyuubiSQLException(s"Invalid $sessionHandle"))
   }
 

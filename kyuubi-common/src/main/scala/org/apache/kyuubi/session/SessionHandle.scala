@@ -25,6 +25,7 @@ import org.apache.kyuubi.shaded.hive.service.rpc.thrift.TSessionHandle
 case class SessionHandle(identifier: UUID) {
 
   def toTSessionHandle: TSessionHandle = {
+    // 创建一个thrift会话句柄
     val tSessionHandle = new TSessionHandle
     tSessionHandle.setSessionId(Handle.toTHandleIdentifier(identifier))
     tSessionHandle

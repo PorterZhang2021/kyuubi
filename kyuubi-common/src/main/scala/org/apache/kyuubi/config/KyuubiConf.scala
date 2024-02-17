@@ -1658,7 +1658,7 @@ object KyuubiConf {
       .version("1.8.0")
       .timeConf
       .createWithDefault(Duration.ofSeconds(5).toMillis)
-
+  // 是否异步启动引擎
   val SESSION_ENGINE_LAUNCH_ASYNC: ConfigEntry[Boolean] =
     buildConf("kyuubi.session.engine.launch.async")
       .doc("When opening kyuubi session, whether to launch the backend engine asynchronously." +

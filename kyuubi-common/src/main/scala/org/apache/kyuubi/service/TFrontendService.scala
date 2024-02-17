@@ -162,19 +162,30 @@ abstract class TFrontendService(name: String)
     versions.minBy(_.getValue)
   }
 
+  /**
+   * 获取SessionHandle
+   * @param req 请求信息
+   * @param res 响应信息
+   * @throws 异常
+   * @return SessionHandle
+   */
   @throws[KyuubiSQLException]
   protected def getSessionHandle(req: TOpenSessionReq, res: TOpenSessionResp): SessionHandle = {
-
+    // 获取最小的协议版本
     val protocol = getMinVersion(SERVER_VERSION, req.getClient_protocol)
     res.setServerProtocolVersion(protocol)
+    // 获取请求用户
     val (realUser, sessionUser) = getRealUserAndSessionUser(req)
+    // 获取Ip地址
     val ipAddress = getIpAddress
+    // 配置信息
     val configuration =
       Map(KYUUBI_CLIENT_IP_KEY -> ipAddress, KYUUBI_SERVER_IP_KEY -> serverAddr.getHostAddress) ++
         Option(req.getConfiguration).map(_.asScala.toMap).getOrElse(Map.empty[String, String]) ++
         Map(
           KYUUBI_SESSION_CONNECTION_URL_KEY -> connectionUrl,
           KYUUBI_SESSION_REAL_USER_KEY -> realUser)
+    // 构建一个sessionHandle
     val sessionHandle = be.openSession(
       protocol,
       sessionUser,
@@ -187,11 +198,16 @@ abstract class TFrontendService(name: String)
   override def OpenSession(req: TOpenSessionReq): TOpenSessionResp = {
     debug(req.toString)
     info("Client protocol version: " + req.getClient_protocol)
+    // 构建一个thriftOpenSessionResponse
     val resp = new TOpenSessionResp
     try {
+      // 获取其SessionHandle
       val sessionHandle = getSessionHandle(req, resp)
+      // 设置SessionHandle
       resp.setSessionHandle(sessionHandle.toTSessionHandle)
+      // 设置配置信息
       resp.setConfiguration(new java.util.HashMap[String, String]())
+      // 设置状态
       resp.setStatus(OK_STATUS)
       Option(CURRENT_SERVER_CONTEXT.get()).foreach(_.setSessionHandle(sessionHandle))
     } catch {
@@ -637,7 +653,7 @@ abstract class TFrontendService(name: String)
 
 private[kyuubi] object TFrontendService {
   final val OK_STATUS = new TStatus(TStatusCode.SUCCESS_STATUS)
-
+  // 最近服务器上下文, 此部分存储线程当中的FeServiceServerContext对象
   final val CURRENT_SERVER_CONTEXT = new ThreadLocal[FeServiceServerContext]()
 
   final val SERVER_VERSION = TProtocolVersion.values.max

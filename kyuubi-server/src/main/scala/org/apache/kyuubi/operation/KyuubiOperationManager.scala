@@ -204,6 +204,12 @@ class KyuubiOperationManager private (name: String) extends OperationManager(nam
     }
   }
 
+  /**
+   * 新的引擎操作
+   * @param session 会话
+   * @param shouldRunAsync 是否异步构建
+   * @return Operation
+   */
   def newLaunchEngineOperation(session: KyuubiSessionImpl, shouldRunAsync: Boolean): Operation = {
     val operation = new LaunchEngine(session, shouldRunAsync)
     addOperation(operation)

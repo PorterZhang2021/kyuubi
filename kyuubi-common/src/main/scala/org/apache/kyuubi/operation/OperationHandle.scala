@@ -39,6 +39,7 @@ case class OperationHandle(identifier: UUID) {
 
 }
 
+// OperationHandle
 object OperationHandle {
   def apply(): OperationHandle = new OperationHandle(UUID.randomUUID())
 

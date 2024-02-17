@@ -79,32 +79,43 @@ final class KyuubiTBinaryFrontendService(
     // 构建返回响应请求
     val resp = new TOpenSessionResp
     try {
-      // 构建SessionHandle
+      // 构建SessionHandle(协议版本, 会话用户, 密码, ip地址以及配置信息)
       val sessionHandle = getSessionHandle(req, resp)
-
+      //  构建一个响应配置存储的HashMap
       val respConfiguration = new java.util.HashMap[String, String]()
+      // 获取启动引擎操作
+      // 通过sessionHandle获取Session
+      // 将Session转换成KyuubiSessionImpl类型
+      // 获取当中的launchEngineOp属性
       val launchEngineOp = be.sessionManager.getSession(sessionHandle)
         .asInstanceOf[KyuubiSessionImpl].launchEngineOp
-
+      // operationHandler
       val opHandleIdentifier = Handle.toTHandleIdentifier(launchEngineOp.getHandle.identifier)
+      // 添加新的响应配置
+      // Kyuubi会话引擎句柄GUID
       respConfiguration.put(
         KYUUBI_SESSION_ENGINE_LAUNCH_HANDLE_GUID,
         Base64.getMimeEncoder.encodeToString(opHandleIdentifier.getGuid))
+      // Kyuubi会话引擎句柄密钥
       respConfiguration.put(
         KYUUBI_SESSION_ENGINE_LAUNCH_HANDLE_SECRET,
         Base64.getMimeEncoder.encodeToString(opHandleIdentifier.getSecret))
-
+      // Kyuubi会话引擎支持结果
       respConfiguration.put(KYUUBI_SESSION_ENGINE_LAUNCH_SUPPORT_RESULT, true.toString)
-
+      // 设置SessionHandle
       resp.setSessionHandle(sessionHandle.toTSessionHandle)
+      // 设置Reponse配置
       resp.setConfiguration(respConfiguration)
+      // 设置状态, 这里是成功状态
       resp.setStatus(OK_STATUS)
+      // 将SessionHandle设置为当前服务器的会话句柄
       Option(CURRENT_SERVER_CONTEXT.get()).foreach(_.setSessionHandle(sessionHandle))
     } catch {
       case e: Exception =>
         error("Error opening session: ", e)
         resp.setStatus(KyuubiSQLException.toTStatus(e, verbose = true))
     }
+    // 返回响应信息
     resp
   }
 
