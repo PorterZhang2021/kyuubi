@@ -114,7 +114,9 @@ class KyuubiSessionManager private (name: String) extends SessionManager(name) {
       password: String,
       ipAddress: String,
       conf: Map[String, String]): SessionHandle = {
+    // 获取用户名
     val username = Option(user).filter(_.nonEmpty).getOrElse("anonymous")
+    // 连接限制
     limiter.foreach(_.increment(UserIpAddress(username, ipAddress)))
     try {
       super.openSession(protocol, username, password, ipAddress, conf)

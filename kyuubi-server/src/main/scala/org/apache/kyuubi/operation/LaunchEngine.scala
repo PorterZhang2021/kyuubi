@@ -54,18 +54,23 @@ class LaunchEngine(session: KyuubiSessionImpl, override val shouldRunAsync: Bool
   }
 
   override protected def runInternal(): Unit = {
+    // 异步执行操作
     val asyncOperation: Runnable = () => {
+      // 设置状态为运行状态
       setState(OperationState.RUNNING)
       try {
+        // 打开引擎会话
         session.openEngineSession(getOperationLog)
+        // 设置状态为完成
         setState(OperationState.FINISHED)
       } catch onError()
     }
     try {
+      // 提交异步操作
       val opHandle = session.sessionManager.submitBackgroundOperation(asyncOperation)
       setBackgroundHandle(opHandle)
     } catch onError("submitting open engine operation in background, request rejected")
-
+    // 没有异步直接获取Handle
     if (!shouldRunAsync) getBackgroundHandle.get()
   }
 

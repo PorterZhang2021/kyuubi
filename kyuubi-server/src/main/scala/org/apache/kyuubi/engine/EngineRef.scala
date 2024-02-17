@@ -182,24 +182,35 @@ private[kyuubi] class EngineRef(
       discoveryClient: DiscoveryClient,
       extraEngineLog: Option[OperationLog]): (String, Int) = tryWithLock(discoveryClient) {
     // Get the engine address ahead if another process has succeeded
+    // 获取引擎服务
     var engineRef = discoveryClient.getServerHost(engineSpace)
+    // 如果不为空那么就直接返回能够获取的引擎信息
     if (engineRef.nonEmpty) return engineRef.get
-
+    // 配置HA_NAMESPACE, 高可用的根目录
     conf.set(HA_NAMESPACE, engineSpace)
+    // 配置HA_ENGINE_REF_ID, 高可用的引用ID
     conf.set(HA_ENGINE_REF_ID, engineRefId)
+    // 开启时间
     val started = System.currentTimeMillis()
+    // 引擎提交时间
     conf.set(KYUUBI_ENGINE_SUBMIT_TIME_KEY, String.valueOf(started))
+    // 构建引擎类型
     builder = engineType match {
+      // Spark
       case SPARK_SQL =>
         conf.setIfMissing(SparkProcessBuilder.APP_KEY, defaultEngineName)
         new SparkProcessBuilder(appUser, doAsEnabled, conf, engineRefId, extraEngineLog)
+      // Flink
       case FLINK_SQL =>
         conf.setIfMissing(FlinkProcessBuilder.APP_KEY, defaultEngineName)
         new FlinkProcessBuilder(appUser, doAsEnabled, conf, engineRefId, extraEngineLog)
+      // TRINO
       case TRINO =>
         new TrinoProcessBuilder(appUser, doAsEnabled, conf, engineRefId, extraEngineLog)
+      // HiveSQL
       case HIVE_SQL =>
         conf.setIfMissing(HiveProcessBuilder.HIVE_ENGINE_NAME, defaultEngineName)
+        // 构建一个Hive进程
         HiveProcessBuilder(
           appUser,
           doAsEnabled,
@@ -207,28 +218,38 @@ private[kyuubi] class EngineRef(
           engineRefId,
           extraEngineLog,
           defaultEngineName)
+      // JDBC
       case JDBC =>
         new JdbcProcessBuilder(appUser, doAsEnabled, conf, engineRefId, extraEngineLog)
+      // CHAT
       case CHAT =>
         new ChatProcessBuilder(appUser, doAsEnabled, conf, engineRefId, extraEngineLog)
     }
-
+    // 获取总共构建时间
     MetricsSystem.tracing(_.incCount(ENGINE_TOTAL))
+    // 请求许可
     var acquiredPermit = false
     try {
+      // 如果在指定的超时时间内无法获取所有许可, 增加一个指标计数器
       if (!startupProcessSemaphore.forall(_.tryAcquire(timeout, TimeUnit.MILLISECONDS))) {
         MetricsSystem.tracing(_.incCount(MetricRegistry.name(ENGINE_TIMEOUT, appUser)))
         throw KyuubiSQLException(
           s"Timeout($timeout ms, you can modify ${ENGINE_INIT_TIMEOUT.key} to change it) to" +
             s" acquires a permit from engine builder semaphore.")
       }
+      // 请求许可通过
       acquiredPermit = true
+      // 启动引擎
       val redactedCmd = builder.toString
       info(s"Launching engine:\n$redactedCmd")
       builder.validateConf()
+      // 进行引擎的启动
       val process = builder.start
+      // 退出值
       var exitValue: Option[Int] = None
+      // 最后应用信息
       var lastApplicationInfo: Option[ApplicationInfo] = None
+      // 如果引擎
       while (engineRef.isEmpty) {
         if (exitValue.isEmpty && process.waitFor(1, TimeUnit.SECONDS)) {
           exitValue = Some(process.exitValue())
@@ -303,15 +324,17 @@ private[kyuubi] class EngineRef(
   }
 
   /**
+   * 从引擎进程中获取一个引擎实例或者创建一个引擎实例
    * Get the engine ref from engine space first or create a new one
-   *
+   *  用于获取或创建引擎实例的zookeeper客户端
    * @param discoveryClient the zookeeper client to get or create engine instance
    * @param extraEngineLog the launch engine operation log, used to inject engine log into it
-   * @return engine host and port
+   * @return engine host and port 引擎的host和port
    */
   def getOrCreate(
       discoveryClient: DiscoveryClient,
       extraEngineLog: Option[OperationLog] = None): (String, Int) = {
+    // 这里如果为空就进行重新创建
     discoveryClient.getServerHost(engineSpace)
       .getOrElse {
         create(discoveryClient, extraEngineLog)

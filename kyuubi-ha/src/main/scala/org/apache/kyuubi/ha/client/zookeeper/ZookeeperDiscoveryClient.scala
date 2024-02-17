@@ -178,6 +178,7 @@ class ZookeeperDiscoveryClient(conf: KyuubiConf) extends DiscoveryClient {
   override def getServerHost(namespace: String): Option[(String, Int)] = {
     // TODO: use last one because to avoid touching some maybe-crashed engines
     // We need a big improvement here.
+    // 用于返回服务节点的主机名和端口号
     getServiceNodesInfo(namespace, Some(1), silent = true) match {
       case Seq(sn) => Some((sn.host, sn.port))
       case _ => None

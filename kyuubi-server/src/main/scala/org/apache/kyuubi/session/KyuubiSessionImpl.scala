@@ -89,7 +89,7 @@ class KyuubiSessionImpl(
 
   private lazy val sessionUserSignBase64: String =
     SignUtils.signWithPrivateKey(user, sessionManager.signingPrivateKey)
-
+  // 会话事件
   private val sessionEvent = KyuubiSessionEvent(this)
   EventBus.post(sessionEvent)
 
@@ -112,14 +112,16 @@ class KyuubiSessionImpl(
   @volatile private var openSessionError: Option[Throwable] = None
 
   override def open(): Unit = handleSessionException {
+    // 记录开启时间
     traceMetricsOnOpen()
-
+    // 检查相关的Session配置
     checkSessionAccessPathURIs()
 
     // we should call super.open before running launch engine operation
     super.open()
-
+    // 启动操作
     runOperation(launchEngineOp)
+    // 引擎最后活动时间
     engineLastAlive = System.currentTimeMillis()
   }
 
@@ -132,14 +134,17 @@ class KyuubiSessionImpl(
   private[kyuubi] def openEngineSession(extraEngineLog: Option[OperationLog] = None): Unit =
     handleSessionException {
       withDiscoveryClient(sessionConf) { discoveryClient =>
+        // 这部分是scala特有, ++为合并操作
+        // 这里将optimizedConf(优化后配置, 没有优化就是默认配置)与新的Map合并构建了OpenEngineSessionConf的Map对象
         var openEngineSessionConf =
           optimizedConf ++ Map(KYUUBI_SESSION_HANDLE_KEY -> handle.identifier.toString)
+        // 如果引擎认证信息不为空, 将这个信息添加到openEngineSessionConf中
         if (engineCredentials.nonEmpty) {
           sessionConf.set(KYUUBI_ENGINE_CREDENTIALS_KEY, engineCredentials)
           openEngineSessionConf =
             openEngineSessionConf ++ Map(KYUUBI_ENGINE_CREDENTIALS_KEY -> engineCredentials)
         }
-
+        // 是否启动用户签名会话验证
         if (sessionConf.get(SESSION_USER_SIGN_ENABLED)) {
           openEngineSessionConf = openEngineSessionConf +
             (SESSION_USER_SIGN_ENABLED.key ->
@@ -149,16 +154,21 @@ class KyuubiSessionImpl(
                 sessionManager.signingPublicKey.getEncoded)) +
             (KYUUBI_SESSION_USER_SIGN -> sessionUserSignBase64)
         }
-
+        // 最大尝试次数
         val maxAttempts = sessionManager.getConf.get(ENGINE_OPEN_MAX_ATTEMPTS)
+        // 尝试等待事件
         val retryWait = sessionManager.getConf.get(ENGINE_OPEN_RETRY_WAIT)
+        // 打开引擎失败后的状态
         val openOnFailure =
           EngineOpenOnFailure.withName(sessionManager.getConf.get(ENGINE_OPEN_ON_FAILURE))
+        // 尝试
         var attempt = 0
+        // 是否等待
         var shouldRetry = true
         while (attempt <= maxAttempts && shouldRetry) {
+          // 进行引擎的创建
           val (host, port) = engine.getOrCreate(discoveryClient, extraEngineLog)
-
+          // 进行引擎的注销
           def deregisterEngine(): Unit =
             try {
               engine.deregister(discoveryClient, (host, port))
@@ -166,21 +176,26 @@ class KyuubiSessionImpl(
               case e: Throwable =>
                 warn(s"Error on de-registering engine [${engine.engineSpace} $host:$port]", e)
             }
-
+          // 开始进行尝试
           try {
+            // spark安全权限是否启用
             val passwd =
               if (sessionManager.getConf.get(ENGINE_SECURITY_ENABLED)) {
                 InternalSecurityAccessor.get().issueToken()
               } else {
                 Option(password).filter(_.nonEmpty).getOrElse("anonymous")
               }
+            // 创建一个KyuubiSyncThriftClient的客户端
             _client = KyuubiSyncThriftClient.createClient(user, passwd, host, port, sessionConf)
+            // 获取引擎SessionHandle
             _engineSessionHandle =
               _client.openSession(protocol, user, passwd, openEngineSessionConf)
             logSessionInfo(s"Connected to engine [$host:$port]/[${client.engineId.getOrElse("")}]" +
               s" with ${_engineSessionHandle}]")
+            // 应该延迟设施为false
             shouldRetry = false
           } catch {
+                // 这里就是没有开启引擎产生的错误
             case e: TTransportException
                 if attempt < maxAttempts && e.getCause.isInstanceOf[java.net.ConnectException] &&
                   e.getCause.getMessage.contains("Connection refused") =>
@@ -207,8 +222,10 @@ class KyuubiSessionImpl(
               throw e
           } finally {
             attempt += 1
+            // 是否进行会话的重试
             if (shouldRetry && _client != null) {
               try {
+                // 对客户端请求进行关闭
                 _client.closeSession()
               } catch {
                 case e: Throwable =>
@@ -220,24 +237,33 @@ class KyuubiSessionImpl(
             }
           }
         }
+        // sessionEvent开启时间
         sessionEvent.openedTime = System.currentTimeMillis()
+        // sessionEvent远程SessionId
         sessionEvent.remoteSessionId = _engineSessionHandle.identifier.toString
+        // 将_client的engineId赋值给sessionEvent.engineId
         _client.engineId.foreach(e => sessionEvent.engineId = e)
+        // 事件信息发送到总线
         EventBus.post(sessionEvent)
       }
     }
 
   override protected def runOperation(operation: Operation): OperationHandle = {
+    // 如果传入的操作不是launchEngineOp
     if (operation != launchEngineOp) {
       try {
+        // 等待启动
         waitForEngineLaunched()
       } catch {
         case t: Throwable =>
+          // 操作关闭
           operation.close()
           throw t
       }
+      // 会话事件的总事件+1
       sessionEvent.totalOperations += 1
     }
+    // 开启操作
     super.runOperation(operation)
   }
 

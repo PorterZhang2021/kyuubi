@@ -320,6 +320,10 @@ object Utils extends Logging {
     stm.toString
   }
 
+  /**
+   * 尝试执行代码块, 并在出现非致命异常时记录错误信息.
+   * @param block 代码块
+   */
   def tryLogNonFatalError(block: => Unit): Unit = {
     try {
       block

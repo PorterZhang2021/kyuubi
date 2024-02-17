@@ -95,8 +95,11 @@ abstract class AbstractSession(
 
   protected def runOperation(operation: Operation): OperationHandle = {
     try {
+      // 获取操作句柄
       val opHandle = operation.getHandle
+      // 操作句柄Set中增加当前操作句柄
       opHandleSet.add(opHandle)
+      // 启动当前操作
       operation.run()
       opHandle
     } catch {
@@ -256,6 +259,9 @@ abstract class AbstractSession(
     }
   }
 
+  /**
+   * 设置操作根日志
+   */
   override def open(): Unit = {
     OperationLog.createOperationLogRootDirectory(this)
   }

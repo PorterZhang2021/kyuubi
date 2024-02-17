@@ -32,6 +32,7 @@ trait BackendServiceMetric extends BackendService {
       password: String,
       ipAddr: String,
       configs: Map[String, String]): SessionHandle = {
+    // 指标系统 时间追踪
     MetricsSystem.timerTracing(MetricsConstants.BS_OPEN_SESSION) {
       super.openSession(protocol, user, password, ipAddr, configs)
     }

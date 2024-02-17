@@ -27,6 +27,7 @@ import org.apache.kyuubi.util.ClassUtils
 object DiscoveryClientProvider extends Logging {
 
   /**
+   * 这里是在调用`f`内容之前之前创建了一个zookeeper的客户端
    * Creates a zookeeper client before calling `f` and close it after calling `f`.
    */
   def withDiscoveryClient[T](conf: KyuubiConf)(f: DiscoveryClient => T): T = {

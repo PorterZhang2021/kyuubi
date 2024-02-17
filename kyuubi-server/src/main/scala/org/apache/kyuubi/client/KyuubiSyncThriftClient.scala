@@ -84,19 +84,26 @@ class KyuubiSyncThriftClient private (
   }
 
   private def startEngineAliveProbe(): Unit = {
+    // 创建单线程的守护式定时执行器
     engineAliveThreadPool = ThreadUtils.newDaemonSingleThreadScheduledExecutor(
       "engine-alive-probe-" + _aliveProbeSessionHandle)
+    // 创建一个Runnable任务
     val task = new Runnable {
       override def run(): Unit = {
+        // 引擎活动客户端存在并且引擎连接开启, 用于检查引擎是否正常工作
         if (!remoteEngineBroken && !engineConnectionClosed) {
           engineAliveProbeClient.foreach { client =>
+            // 构建ThriftClientInfoRequest并设置SessionHandle以及InfoType
             val tGetInfoReq = new TGetInfoReq()
             tGetInfoReq.setSessionHandle(_aliveProbeSessionHandle)
             tGetInfoReq.setInfoType(TGetInfoType.CLI_DBMS_VER)
 
             try {
+              // 从客户端中获取Info信息值
               client.GetInfo(tGetInfoReq).getInfoValue.getStringValue
+              // 引擎最后存货事件
               engineLastAlive = System.currentTimeMillis()
+              // 远程引擎损坏为false
               remoteEngineBroken = false
             } catch {
               case e: Throwable =>
@@ -119,15 +126,20 @@ class KyuubiSyncThriftClient private (
               }
             }
           }
+          // 通过引擎探测关闭客户端
           clientClosedByAliveProbe = true
+          // 关闭异步执行请求器
           shutdownAsyncRequestExecutor()
+          // 关闭线程池
           Option(engineAliveThreadPool).foreach { pool =>
             ThreadUtils.shutdown(pool, Duration(engineAliveProbeInterval, TimeUnit.MILLISECONDS))
           }
         }
       }
     }
+    // 引擎最后存活事件
     engineLastAlive = System.currentTimeMillis()
+    // 定时调度任务
     scheduleTolerableRunnableWithFixedDelay(
       engineAliveThreadPool,
       task,
@@ -137,6 +149,7 @@ class KyuubiSyncThriftClient private (
   }
 
   /**
+   * // 按顺序发送每个rpc的调用
    * Lock every rpc call to send them sequentially
    */
   private def withLockAcquired[T](block: => T): T = Utils.withLockRequired(lock) {
@@ -170,6 +183,7 @@ class KyuubiSyncThriftClient private (
   def engineUrl: Option[String] = _engineUrl
 
   /**
+   * 返回Kyuubi session中的engine SessionHandle 以便我们可以获得相同的session id
    * Return the engine SessionHandle for kyuubi session so that we can get the same session id
    */
   def openSession(
@@ -177,46 +191,69 @@ class KyuubiSyncThriftClient private (
       user: String,
       password: String,
       configs: Map[String, String]): SessionHandle = {
+    // SessionRequest请求
     val req = new TOpenSessionReq(protocol)
+    // 用户名
     req.setUsername(user)
+    // 密码
     req.setPassword(password)
+    // 设置配置
     req.setConfiguration(configs.asJava)
+    // 响应请求
     val resp = withLockAcquired(OpenSession(req))
+    // 验证当前的response状态
     ThriftUtils.verifyTStatus(resp.getStatus)
+    // 远程的SessionHandle 这里是对其进行了赋值操作
     _remoteSessionHandle = resp.getSessionHandle
+    // 引擎id
     _engineId = Option(resp.getConfiguration)
       .filter(_.containsKey(KYUUBI_ENGINE_ID))
       .map(_.get(KYUUBI_ENGINE_ID))
+    // 引擎名称
     _engineName = Option(resp.getConfiguration)
       .filter(_.containsKey(KYUUBI_ENGINE_NAME))
       .map(_.get(KYUUBI_ENGINE_NAME))
+    // 引擎的url
     _engineUrl = Option(resp.getConfiguration)
       .filter(_.containsKey(KYUUBI_ENGINE_URL))
       .map(_.get(KYUUBI_ENGINE_URL))
-
+    // 引擎活动探测协议客户端
     engineAliveProbeClient.foreach { aliveProbeClient =>
+      // 生成会话名称
       val sessionName = SessionHandle.apply(_remoteSessionHandle).identifier + "_aliveness_probe"
+      // 这里对内部代码块进行验证
       Utils.tryLogNonFatalError {
+        // 设置配置信息
         req.setConfiguration((configs ++ Map(
           KyuubiConf.SESSION_NAME.key -> sessionName,
           KYUUBI_SESSION_HANDLE_KEY -> UUID.randomUUID().toString,
+          // 初始化执行脚本
           KyuubiConf.ENGINE_SESSION_INITIALIZE_SQL.key -> "")).asJava)
+        // 获取response请求
         val resp = aliveProbeClient.OpenSession(req)
+        // 验证响应状态
         ThriftUtils.verifyTStatus(resp.getStatus)
+        // 获取当前响应请求的SessionHandle
         _aliveProbeSessionHandle = resp.getSessionHandle
+        // 启动引擎激活探测
         startEngineAliveProbe()
       }
     }
-
+    // 这里返回SessionHandle
     SessionHandle(_remoteSessionHandle)
   }
 
   def closeSession(): Unit = {
+    // 客户端关闭的心跳探测, 如果为true则关闭
     if (clientClosedByAliveProbe) return
     try {
+      // 如果remoteSessionHandle不为空
       if (_remoteSessionHandle != null) {
+        // 创建request一个thriftCloseSession的Request请求
         val req = new TCloseSessionReq(_remoteSessionHandle)
+        // 准备关闭remoteSessionHandle
         val resp = withLockAcquiredAsyncRequest(CloseSession(req))
+        // 验证响应状态
         ThriftUtils.verifyTStatus(resp.getStatus)
       }
     } catch {
@@ -226,6 +263,7 @@ class KyuubiSyncThriftClient private (
       Option(engineAliveThreadPool).foreach { pool =>
         ThreadUtils.shutdown(pool, Duration(engineAliveProbeInterval, TimeUnit.MILLISECONDS))
       }
+      // 如果SessionHandle心跳检测不为空, 那么就尝试关闭该引擎客户端的心跳检测
       if (_aliveProbeSessionHandle != null) {
         engineAliveProbeClient.foreach { client =>
           Utils.tryLogNonFatalError {
@@ -235,9 +273,11 @@ class KyuubiSyncThriftClient private (
           }
         }
       }
+      // 关闭指定协议的传输
       Seq(protocol).union(engineAliveProbeProtocol.toSeq).foreach { tProtocol =>
         if (tProtocol.getTransport.isOpen) tProtocol.getTransport.close()
       }
+      // 关闭异步请求执行器
       shutdownAsyncRequestExecutor()
     }
   }

@@ -111,8 +111,12 @@ object ThreadUtils extends Logging {
   }
 
   /**
+   * 将可运行的程序安排到计划的执行器中
    * Schedule a runnable to the scheduled executor service.
+   * 可运行程序抛出异常时会抓取记录
    * The exceptions thrown in the runnable will be caught and logged.
+   * 将一个Runnable任务安排在给定的调度器上, 以固定时间间隔执行
+   * 如果在执行任务时发生未捕获异常, 记录错误信息
    */
   def scheduleTolerableRunnableWithFixedDelay(
       scheduler: ScheduledExecutorService,

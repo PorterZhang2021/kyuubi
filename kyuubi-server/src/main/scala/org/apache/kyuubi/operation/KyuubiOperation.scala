@@ -101,22 +101,26 @@ abstract class KyuubiOperation(session: Session) extends AbstractOperation(sessi
   }
 
   override def run(): Unit = {
+    // 启动操作前
     beforeRun()
     try {
       session.asInstanceOf[KyuubiSession].handleSessionException {
         runInternal()
       }
     } finally {
+      // 启动操作后
       afterRun()
     }
   }
 
   override protected def beforeRun(): Unit = {
+    // 返回结果集
     setHasResultSet(true)
+    // 设置操作状态
     setState(OperationState.RUNNING)
     sendCredentialsIfNeeded()
   }
-
+  // 进行身份信息认证
   protected def sendCredentialsIfNeeded(): Unit = {
     val sessionManager = session.sessionManager.asInstanceOf[KyuubiSessionManager]
     sessionManager.credentialsManager.sendCredentialsIfNeeded(

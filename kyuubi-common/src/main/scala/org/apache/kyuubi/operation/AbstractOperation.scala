@@ -99,6 +99,7 @@ abstract class AbstractOperation(session: Session) extends Operation with Loggin
 
   protected def setHasResultSet(hasResultSet: Boolean): Unit = {
     this.hasResultSet = hasResultSet
+    // 是否返回结果集
     handle.setHasResultSet(hasResultSet)
   }
 

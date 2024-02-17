@@ -102,11 +102,16 @@ abstract class SessionManager(name: String) extends CompositeService(name) {
       ipAddress: String,
       conf: Map[String, String]): SessionHandle = {
     info(s"Opening session for $user@$ipAddress")
+    // 创建一个Session
     val session = createSession(protocol, user, password, ipAddress, conf)
     try {
+      // 获取session句柄
       val handle = session.handle
+      // 开启session
       session.open()
+      // 设置session
       setSession(handle, session)
+      // 打印信息
       logSessionCountInfo(session, "opened")
       handle
     } catch {

@@ -107,12 +107,14 @@ object MetricsSystem {
 
   @throws[Exception]
   def timerTracing[T](name: String)(f: => T): T = {
+    // 开始时间
     val startTime = System.nanoTime()
     try {
       f
     } finally {
       tracing(_.updateTimer(name, System.nanoTime() - startTime, TimeUnit.NANOSECONDS))
     }
+    // 这里获取到结束时间
   }
 
   def counterValue(name: String): Option[Long] = {

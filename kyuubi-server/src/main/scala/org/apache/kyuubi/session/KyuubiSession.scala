@@ -44,6 +44,10 @@ abstract class KyuubiSession(
 
   def checkSessionAccessPathURIs(): Unit
 
+  /**
+   * 进行异常的报错处理
+   * @param f 这里是一个无返回函数, 主要是对句柄函数进行一个异常的验证
+   */
   private[kyuubi] def handleSessionException(f: => Unit): Unit = {
     try {
       f
