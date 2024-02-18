@@ -255,22 +255,33 @@ abstract class TFrontendService(name: String)
 
   override def ExecuteStatement(req: TExecuteStatementReq): TExecuteStatementResp = {
     debug(req.toString)
+    // 构建TExcuteStatementResponse
     val resp = new TExecuteStatementResp
     try {
+      // 获取SessionHandle
       val sessionHandle = SessionHandle(req.getSessionHandle)
+      // 获取statement
       val statement = req.getStatement
+      // 是否异步
       val runAsync = req.isRunAsync
+
       val confOverlay = Option(req.getConfOverlay).getOrElse(Map.empty.asJava)
+      // 查询时间
       val queryTimeout = req.getQueryTimeout
+      // be执行executeStatement
       val operationHandle = be.executeStatement(
         sessionHandle,
         statement,
         confOverlay.asScala.toMap,
         runAsync,
         queryTimeout)
+      // 获得thriftOperationHandle
       val tOperationHandle = operationHandle.toTOperationHandle
+      // 执行statement
       tOperationHandle.setOperationType(TOperationType.EXECUTE_STATEMENT)
+      // 设置OperationHandle
       resp.setOperationHandle(tOperationHandle)
+      // 更新状态
       resp.setStatus(OK_STATUS)
     } catch {
       case e: Exception =>

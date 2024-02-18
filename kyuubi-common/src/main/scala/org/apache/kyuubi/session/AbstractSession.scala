@@ -128,8 +128,10 @@ abstract class AbstractSession(
       confOverlay: Map[String, String],
       runAsync: Boolean,
       queryTimeout: Long): OperationHandle = withAcquireRelease() {
+    // sessionManager.operationManager然后构建一个ExecuteStatementOperation实例
     val operation = sessionManager.operationManager
       .newExecuteStatementOperation(this, statement, confOverlay, runAsync, queryTimeout)
+    // 执行该ExecuteStatementOperation实例
     runOperation(operation)
   }
 

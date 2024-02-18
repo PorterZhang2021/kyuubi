@@ -59,6 +59,7 @@ abstract class AbstractBackendService(name: String)
       confOverlay: Map[String, String],
       runAsync: Boolean,
       queryTimeout: Long): OperationHandle = {
+    // 获得当前的sessionHandle后执行executeStatement
     sessionManager.getSession(sessionHandle).executeStatement(
       statement,
       confOverlay,

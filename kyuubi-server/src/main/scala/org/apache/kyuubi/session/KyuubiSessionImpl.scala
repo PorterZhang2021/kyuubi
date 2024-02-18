@@ -41,6 +41,7 @@ import org.apache.kyuubi.sql.parser.server.KyuubiParser
 import org.apache.kyuubi.sql.plan.command.RunnableCommand
 import org.apache.kyuubi.util.SignUtils
 
+// 这里parser解析器有问题， 好像缺少文件
 class KyuubiSessionImpl(
     protocol: TProtocolVersion,
     user: String,
@@ -330,7 +331,9 @@ class KyuubiSessionImpl(
       confOverlay: Map[String, String],
       runAsync: Boolean,
       queryTimeout: Long): OperationHandle = withAcquireRelease() {
+    // 解释器解释当前statement计划
     val kyuubiNode = parser.parsePlan(statement)
+    // 这里进行分支， 如果是相关执行命令那么这里利用Server开始执行命令， 否则使用上层AbstractSession
     kyuubiNode match {
       case command: RunnableCommand =>
         val operation = sessionManager.operationManager.newExecuteOnServerOperation(
