@@ -303,12 +303,17 @@ class KyuubiSessionImpl(
   }
 
   override def close(): Unit = {
+    // 这里主要关闭operation
     super.close()
+    // 移除Session对应的会话凭证
     sessionManager.credentialsManager.removeSessionCredentialsEpoch(handle.identifier.toString)
     try {
+      // 如果客户端不为空， 此时关闭客户端会话
       if (_client != null) _client.closeSession()
     } finally {
+      // 遍历openSessionError， 发现当中有引擎不为空的， 关闭其引擎
       openSessionError.foreach { _ => if (engine != null) engine.close() }
+      // 统计相关的时间
       sessionEvent.endTime = System.currentTimeMillis()
       EventBus.post(sessionEvent)
       traceMetricsOnClose()

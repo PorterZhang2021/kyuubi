@@ -83,7 +83,9 @@ abstract class AbstractSession(
   }
 
   override def close(): Unit = withAcquireRelease() {
+    // 遍历opHandleSet
     opHandleSet.forEach { opHandle =>
+      // 尝试关闭Operation
       try {
         sessionManager.operationManager.closeOperation(opHandle)
       } catch {

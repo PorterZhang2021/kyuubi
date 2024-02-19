@@ -153,11 +153,15 @@ abstract class KyuubiOperation(session: Session) extends AbstractOperation(sessi
   }
 
   override def close(): Unit = withLockRequired {
+    // 如果不是关闭或者取消状态
     if (!isClosedOrCanceled) {
+      // 设置状态
       setState(OperationState.CLOSED)
       MetricsSystem.tracing(_.decCount(MetricRegistry.name(OPERATION_OPEN, opType)))
+      // 如果remoteOpHandle不为空
       if (_remoteOpHandle != null) {
         try {
+          // 客户端关闭远程OpHandle操作
           client.closeOperation(_remoteOpHandle)
         } catch {
           case e @ (_: TException | _: KyuubiSQLException) =>
@@ -168,6 +172,7 @@ abstract class KyuubiOperation(session: Session) extends AbstractOperation(sessi
     try {
       // For launch engine operation, we use OperationLog to pass engine submit log but
       // at that time we do not have remoteOpHandle
+      // 获取操作日志并关闭
       getOperationLog.foreach(_.close())
     } catch {
       case e: IOException => error(e.getMessage, e)

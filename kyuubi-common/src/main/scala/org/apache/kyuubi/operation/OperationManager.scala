@@ -35,7 +35,7 @@ import org.apache.kyuubi.shaded.hive.service.rpc.thrift._
  * @param name Service Name
  */
 abstract class OperationManager(name: String) extends AbstractService(name) {
-
+  // 这里存放了OperationHandle以及其Operation
   final private val handleToOperation = new java.util.HashMap[OperationHandle, Operation]()
 
   protected def skipOperationLog: Boolean = false
@@ -111,6 +111,7 @@ abstract class OperationManager(name: String) extends AbstractService(name) {
 
   @throws[KyuubiSQLException]
   final def removeOperation(opHandle: OperationHandle): Operation = synchronized {
+    // 从handleToOperation（HashMap）中移除opHandle
     val operation = handleToOperation.remove(opHandle)
     if (operation == null) throw KyuubiSQLException(s"Invalid $opHandle")
     operation
@@ -127,7 +128,9 @@ abstract class OperationManager(name: String) extends AbstractService(name) {
 
   @throws[KyuubiSQLException]
   final def closeOperation(opHandle: OperationHandle): Unit = {
+    // 移除operation
     val operation = removeOperation(opHandle)
+    // operation关闭
     operation.close()
   }
 

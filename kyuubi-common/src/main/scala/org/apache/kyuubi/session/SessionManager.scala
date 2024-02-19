@@ -127,15 +127,21 @@ abstract class SessionManager(name: String) extends CompositeService(name) {
   }
 
   def closeSession(sessionHandle: SessionHandle): Unit = {
+    // 最晚注销时间
     _latestLogoutTime = System.currentTimeMillis()
+    // 移除sessionHandle
     val session = handleToSession.remove(sessionHandle)
+    // 如果session为null 则说明当前sessionHandle无效
     if (session == null) {
       throw KyuubiSQLException(s"Invalid $sessionHandle")
     }
+    // 打印日志说明session关闭
     logSessionCountInfo(session, "closed")
+    // 尝试关闭session
     try {
       session.close()
     } finally {
+      // 删除操作日志会话目录
       deleteOperationLogSessionDir(sessionHandle)
     }
   }

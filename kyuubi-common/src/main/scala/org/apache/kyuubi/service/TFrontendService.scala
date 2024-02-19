@@ -220,7 +220,7 @@ abstract class TFrontendService(name: String)
 
   override def CloseSession(req: TCloseSessionReq): TCloseSessionResp = {
     debug(req.toString)
-    // 获取sessionhandle
+    // 获取sessionHandle
     val handle = SessionHandle(req.getSessionHandle)
     info(s"Received request of closing $handle")
     // 获取response
@@ -259,7 +259,7 @@ abstract class TFrontendService(name: String)
 
   override def ExecuteStatement(req: TExecuteStatementReq): TExecuteStatementResp = {
     debug(req.toString)
-    // 构建TExcuteStatementResponse
+    // 构建TExecuteStatementResponse
     val resp = new TExecuteStatementResp
     try {
       // 获取SessionHandle

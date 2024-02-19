@@ -232,24 +232,26 @@ class OperationLog(path: Path) {
   }
 
   def close(): Unit = synchronized {
+    // 关闭额外的Readers
     closeExtraReaders()
-
+    // 关闭reader
     trySafely {
       if (reader != null) {
         reader.close()
       }
     }
+    // 关闭writer
     trySafely {
       writer.close()
     }
-
+    // 关闭seekableReader
     if (seekableReader != null) {
       lastSeekReadPos = 0
       trySafely {
         seekableReader.close()
       }
     }
-
+    // 删除存在的文件
     trySafely {
       Files.deleteIfExists(path)
     }
