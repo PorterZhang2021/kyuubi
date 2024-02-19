@@ -220,11 +220,15 @@ abstract class TFrontendService(name: String)
 
   override def CloseSession(req: TCloseSessionReq): TCloseSessionResp = {
     debug(req.toString)
+    // 获取sessionhandle
     val handle = SessionHandle(req.getSessionHandle)
     info(s"Received request of closing $handle")
+    // 获取response
     val resp = new TCloseSessionResp
     try {
+      // be关闭Session
       be.closeSession(handle)
+      // response设置状态
       resp.setStatus(OK_STATUS)
     } catch {
       case e: Exception =>
@@ -264,7 +268,7 @@ abstract class TFrontendService(name: String)
       val statement = req.getStatement
       // 是否异步
       val runAsync = req.isRunAsync
-
+      // 覆盖配置
       val confOverlay = Option(req.getConfOverlay).getOrElse(Map.empty.asJava)
       // 查询时间
       val queryTimeout = req.getQueryTimeout

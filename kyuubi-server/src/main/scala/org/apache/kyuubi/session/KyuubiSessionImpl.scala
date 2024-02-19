@@ -336,11 +336,14 @@ class KyuubiSessionImpl(
     // 这里进行分支， 如果是相关执行命令那么这里利用Server开始执行命令， 否则使用上层AbstractSession
     kyuubiNode match {
       case command: RunnableCommand =>
+        // 这里通过调用sessionManager当中operationManager实例当中的newExecuteOnServerOperation方法
         val operation = sessionManager.operationManager.newExecuteOnServerOperation(
           this,
           runAsync,
           command)
+        // 执行Operation
         runOperation(operation)
+      // 执行executeStatement, 这里调用的是AbstractSession中的方法
       case _ => super.executeStatement(statement, confOverlay, runAsync, queryTimeout)
     }
   }

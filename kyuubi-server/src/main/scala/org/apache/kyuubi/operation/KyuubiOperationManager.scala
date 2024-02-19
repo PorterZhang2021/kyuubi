@@ -69,6 +69,7 @@ class KyuubiOperationManager private (name: String) extends OperationManager(nam
       session: KyuubiSessionImpl,
       runAsync: Boolean,
       command: RunnableCommand): Operation = {
+    // 这里通过ExecutedCommandExec构建一个opertaion实例
     val operation = new ExecutedCommandExec(session, runAsync, command)
     addOperation(operation)
   }

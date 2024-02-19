@@ -97,6 +97,7 @@ abstract class OperationManager(name: String) extends AbstractService(name) {
   def getQueryId(operation: Operation): String
 
   final def addOperation(operation: Operation): Operation = synchronized {
+    // handleToOperation是一个hashmap用来保存operation操作的句柄, 以及operation
     handleToOperation.put(operation.getHandle, operation)
     operation
   }

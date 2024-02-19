@@ -37,17 +37,17 @@ class ExecutedCommandExec(
       null
     }
   override def getOperationLog: Option[OperationLog] = Option(_operationLog)
-
+  // 启动前
   override protected def beforeRun(): Unit = {
     OperationLog.setCurrentOperationLog(_operationLog)
     setHasResultSet(true)
     setState(OperationState.PENDING)
   }
-
+  // 启动后
   override protected def afterRun(): Unit = {
     OperationLog.removeCurrentOperationLog()
   }
-
+  // 启动中
   override protected def runInternal(): Unit = {
     val asyncOperation: Runnable = () => {
       setState(OperationState.RUNNING)
