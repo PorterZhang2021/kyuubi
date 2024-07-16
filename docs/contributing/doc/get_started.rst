@@ -75,8 +75,6 @@ Editing And Testing
 Make the necessary changes to the documentation files using a text editor.
 `Build and verify`_ the changes you have made to see if they look fine.
 
-.. note::
-   :class: dropdown, toggle
 
 Create A Pull Request
 ~~~~~~~~~~~~~~~~~~~~~
@@ -117,3 +115,5 @@ If you don't have time to fix the doc issue and submit a pull request on your ow
 .. _Create A Pull Request: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
 .. _reporting a document issue: https://github.com/apache/kyuubi/issues/new/choose
 .. _Documentation Issues: https://github.com/apache/kyuubi/issues?q=is%3Aopen+is%3Aissue+label%3Akind%3Adocumentation
+.. _Github repository: https://github.com/apache/kyuubi/
+.. _Read The Docs: https://kyuubi.readthedocs.io/en/master/
