@@ -48,9 +48,6 @@ source_suffix = {
     '.md': 'markdown',
 }
 
-source_parsers = {
-    '.md': CommonMarkParser,
-}
 
 # -- Project information -----------------------------------------------------
 
@@ -76,12 +73,12 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.mathjax',
-    'recommonmark',
     'sphinx_copybutton',
     'sphinx_markdown_tables',
     'sphinx_togglebutton',
     'notfound.extension',
     'sphinxemoji.sphinxemoji',
+    'myst_parser',
 ]
 
 master_doc = 'index'
